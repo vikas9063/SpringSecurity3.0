@@ -1,20 +1,27 @@
 package com.vk.proj.controller;
 
 import com.vk.proj.modal.Category;
+import com.vk.proj.modal.Expense;
 import com.vk.proj.modal.Roles;
+import com.vk.proj.repo.ExpenseRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.aggregation.DateOperators;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import com.vk.proj.repo.UserRepo;
 import com.vk.proj.modal.Users;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.Month;
+import java.time.Year;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -23,9 +30,17 @@ public class MainController {
 	@Autowired
 	private UserRepo userRepo;
 
+	@Autowired
+	private ExpenseRepo expenseRepo;
 
 	@Autowired
 	private PasswordEncoder passwordEncoder;
+
+
+	private boolean isUserPresent(String userId) throws Exception {
+		this.userRepo.findById(userId).orElseThrow(()-> new Exception("User not available"));
+		return false;
+	}
 
 	@PostMapping("/auth/user")
 	public ResponseEntity<Users> createUser(@RequestBody Users userRequest) throws Exception {
@@ -79,5 +94,29 @@ public class MainController {
 
 		return  new ResponseEntity<>(userRepo.save(userRequest),HttpStatus.OK);
 	}
+
+	@PostMapping("user/add-expense")
+	public ResponseEntity<Expense> createExpense(@RequestBody Expense expense) throws Exception {
+		if((expense.getUserId() == null || expense.getUserId() =="") || isUserPresent(expense.getUserId())){
+			throw new Exception("user Id is required");
+		}
+		expense.setExpId(UUID.randomUUID().toString());
+		expense.setExpOn(LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss")));
+		expense.setExpOnMonth(YearMonth.now().getMonthValue());
+		expense.setExpOnYear(Year.now().getValue());
+		expense.setExpOnDate(Integer.parseInt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd"))));
+		//expense.setExpOnYear(new Date().getYear());
+
+		return new ResponseEntity<>(this.expenseRepo.save(expense),HttpStatus.CREATED);
+	}
+	@GetMapping("/user/expense-all")
+	public ResponseEntity<List<Expense>> grtAllExpense(){
+
+
+		return null;
+	}
+
+
+
 
 }
