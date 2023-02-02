@@ -2,6 +2,7 @@ package com.vk.proj.modal;
 
 public class Expense {
 
+    private String id;
     private String expId;
     private String expTitle;
     private String expCategory;
@@ -94,4 +95,6 @@ public class Expense {
     public void setExpOnMonth(int expOnMonth) {
         this.expOnMonth = expOnMonth;
     }
+
+
 }

@@ -46,6 +46,8 @@ public class AuthController {
         map.put("token", token);
         map.put("tokenExpTime",this.jwtTokenHelper.getExpirationDateFromToken(token).toString());
         map.put("message","Success");
+        map.put("userId",userDetails.getUsername());
+        map.put("userRole",userDetails.getAuthorities());
 
 
         return new ResponseEntity<Map<String, Object>>(map, HttpStatus.OK);
