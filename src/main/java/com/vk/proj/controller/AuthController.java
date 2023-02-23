@@ -2,6 +2,7 @@ package com.vk.proj.controller;
 
 import com.vk.proj.config.JwtTokenHelper;
 import com.vk.proj.modal.LoginReq;
+import com.vk.proj.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +34,10 @@ public class AuthController {
     @Autowired
     private AuthenticationManager authenticationManager;
 
+    @Autowired
+    private UserService userService;
+
+
     @PostMapping("/auth/login")
     public ResponseEntity<Map<String,Object>> login(@RequestBody LoginReq loginReq) throws Exception{
         System.out.println("started !!!"+loginReq.getUsername()+loginReq.getPassword());
@@ -46,7 +51,9 @@ public class AuthController {
         map.put("token", token);
         map.put("tokenExpTime",this.jwtTokenHelper.getExpirationDateFromToken(token).toString());
         map.put("message","Success");
-        map.put("userId",userDetails.getUsername());
+        map.put("userName",userDetails.getUsername());
+        map.put("userId",this.userService.userIdByUserName(userDetails.getUsername()));
+        map.put("dailyLimit",this.userService.getUserDailyLimit(userDetails.getUsername()));
         map.put("userRole",userDetails.getAuthorities());
 
 

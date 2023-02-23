@@ -73,6 +73,7 @@
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
 		</plugins>
+		<finalName>vky-app</finalName>
 	</build>
 
 </project>

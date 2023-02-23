@@ -35,6 +35,16 @@ public class Users implements UserDetails {
 	@NotBlank
 	private String password;
 
+	private double dailyLimit;
+
+	public double getDailyLimit() {
+		return dailyLimit;
+	}
+
+	public void setDailyLimit(double dailyLimit) {
+		this.dailyLimit = dailyLimit;
+	}
+
 	private List<Category> categories = new ArrayList<>();
 
 	private Set<Roles> roles = new HashSet<>();
