@@ -4,17 +4,18 @@ import com.vk.proj.modal.Expense;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
+
 
 import java.util.List;
 
 
-public interface ExpenseRepo extends MongoRepository<Expense,String> {
+public interface ExpenseRepo extends JpaRepository<Expense,String> {
     Page<Expense> findAllByUserId(String userId, Pageable pageable);
 
     List<Expense> findAllByUserId(String userId);
 
-    Expense findByExpId(String expId);
+    //Expense findByExpId(String expId);
 
     List<Expense> findAllByExpOnYearAndUserId(int year,String userId);
 
@@ -28,7 +29,7 @@ public interface ExpenseRepo extends MongoRepository<Expense,String> {
 
     Page<Expense> findAllByUserIdAndExpOnYear(String userId,int year,Pageable pageable);
 
-    void deleteByExpId(String expId);
+
 
 
 }

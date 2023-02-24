@@ -1,8 +1,8 @@
 package com.vk.proj.modal;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.Document;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
+
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -14,7 +14,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 
-@Document(collection  = "users")
+@Entity
 public class Users implements UserDetails {
 
 	@Id
@@ -26,7 +26,6 @@ public class Users implements UserDetails {
 	private String lname;
 	@NotBlank
 	@Size(max=100)
-	@Indexed(unique = true)
 	private String email;
 	private String about;
 	@NotBlank
@@ -37,6 +36,15 @@ public class Users implements UserDetails {
 
 	private double dailyLimit;
 
+	@JsonIgnore
+	@OneToMany(mappedBy = "user", cascade = CascadeType.ALL,fetch = FetchType.LAZY)
+	private List<Category> categories = new ArrayList<>();
+
+	@JsonIgnore
+	@OneToMany(mappedBy = "user", cascade = CascadeType.ALL,fetch = FetchType.EAGER)
+	private Set<Roles> roles = new HashSet<>();
+
+
 	public double getDailyLimit() {
 		return dailyLimit;
 	}
@@ -45,9 +53,7 @@ public class Users implements UserDetails {
 		this.dailyLimit = dailyLimit;
 	}
 
-	private List<Category> categories = new ArrayList<>();
 
-	private Set<Roles> roles = new HashSet<>();
 
 	public List<Category> getCategories() {
 		return categories;

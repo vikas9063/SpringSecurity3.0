@@ -1,6 +1,7 @@
 package com.vk.proj.controller;
 
 import com.vk.proj.modal.*;
+import com.vk.proj.repo.CategoryRepo;
 import com.vk.proj.repo.ExpenseRepo;
 import com.vk.proj.service.ExpenseService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +49,8 @@ public class MainController {
     @Autowired
     private ExpenseService expenseService;
 
+    @Autowired
+    private CategoryRepo categoryRepo;
 
     private boolean isUserPresent(String userId) throws Exception {
         this.userRepo.findById(userId).orElseThrow(() -> new Exception("User not available"));
@@ -61,15 +64,18 @@ public class MainController {
         }
         String password = userRequest.getPassword();
         List<Category> categories = new ArrayList<>();
-        categories.add(new Category("Fun", "Spent money on Fun thing", ""));
-        categories.add(new Category("Movie", "Spent money on Watching Movie", ""));
-        categories.add(new Category("Learning", "Spent money on Learning new", ""));
+        categories.add(new Category("Fun", "Spent money on Fun thing", "",userRequest,UUID.randomUUID().toString()));
+        categories.add(new Category("Movie", "Spent money on Watching Movie", "",userRequest,UUID.randomUUID().toString()));
+        categories.add(new Category("Learning", "Spent money on Learning new", "",userRequest,UUID.randomUUID().toString()));
         userRequest.setCategories(categories);
         userRequest.setPassword(passwordEncoder.encode(password));
         userRequest.setProfilePic("default.png");
         userRequest.setDailyLimit(1500.00);
+        userRequest.setId(UUID.randomUUID().toString());
+        userRequest.setRegDate(LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss")));
         Set<Roles> roles = new HashSet<>();
-        roles.add(new Roles("NORMAL", "Normal Role"));
+        roles.add(new Roles("NORMAL", "Normal Role",101,userRequest));
+
         userRequest.setRoles(roles);
         return new ResponseEntity<Users>(userRepo.save(userRequest), HttpStatus.CREATED);
     }
@@ -127,7 +133,7 @@ public class MainController {
     @GetMapping("/user/expense-all-paginated{userId}")
     public ResponseEntity<Map<String, Object>> grtAllExpensePaginated(@RequestParam(defaultValue = "0") Integer pageNo,
                                                                       @RequestParam(defaultValue = "5") Integer pageSize,
-                                                                      @RequestParam(defaultValue = "id") String sortBy
+                                                                      @RequestParam(defaultValue = "expId") String sortBy
     ) {
 
         Map<String, Object> map = new HashMap<>();
@@ -153,7 +159,7 @@ public class MainController {
     public ResponseEntity<Map<String, Object>> getExpenseForUser(@PathVariable String userId,
                                                                  @RequestParam(defaultValue = "0") Integer pageNo,
                                                                  @RequestParam(defaultValue = "5") Integer pageSize,
-                                                                 @RequestParam(defaultValue = "id") String sortBy
+                                                                 @RequestParam(defaultValue = "expId") String sortBy
     ) {
 
         Pageable paging = PageRequest.of(pageNo, pageSize, Sort.by(sortBy));
@@ -190,11 +196,8 @@ public class MainController {
     public ResponseEntity<Map<String, Object>> updateExpense(@RequestBody Expense expense, @PathVariable String expId,
                                                              @PathVariable String userId
                                                              ) throws Exception {
-        Expense exp=this.expenseRepo.findByExpId(expId);
+        Expense exp=this.expenseRepo.findById(expId).orElseThrow(()-> new Exception("Expense not found to update.."));
         System.out.println("update"+exp.getUserId());
-        if(exp == null){
-            throw new Exception("Resource is not available to update");
-        }
         if(exp.getUserId().equals(userId)){
             exp.setExpOnDate(expense.getExpOnDate());
             exp.setExpOnYear(expense.getExpOnYear());
@@ -243,12 +246,20 @@ public class MainController {
     }
 
     @PostMapping("/user/update-category/{userId}")
-    public ResponseEntity<Map<String,Object>> updateCategory(@PathVariable String userId, @RequestBody List<Category> categories) throws Exception {
+    public ResponseEntity<Map<String,Object>> updateCategory(@PathVariable String userId,
+                                                             @RequestBody List<Category> categories
+    ) throws Exception {
         System.out.println(categories.size());
         Users user=this.userRepo.findById(userId).orElseThrow(()-> new Exception("User not found "));
         int catSize= user.getCategories().size()+categories.size();
         if(catSize > 12){
             throw new Exception("One User can create only 12 categories");
+        }
+        if(categories.size()>0){
+            for(Category c:categories){
+                c.setCatId(UUID.randomUUID().toString());
+                c.setUser(user);
+            }
         }
         categories.addAll(user.getCategories());
         user.setCategories(categories);
@@ -270,18 +281,15 @@ public class MainController {
         List<Expense> filteredList = new ArrayList<>();
         if(isUserPresent(userId)){
             List<Expense> expenses=this.expenseRepo.findAllByUserId(userId);
+            int count=0;
+            for(Expense e:expenses){
+                filteredList.add(e);
+                count++;
+                if(count==2){
+                    break;
+                }
+            }
 
-            int size=expenses.size();
-           if(expenses != null && expenses.size()>0){
-               for(int i=size-1; i>size-3; i--){
-                   if(size == 1){
-                      filteredList.add(expenses.get(i));
-                      break;
-                   }if(size >=2){
-                       filteredList.add(expenses.get(i));
-                   }
-               }
-           }
         }
         return ResponseEntity.ok().body(filteredList);
     }
@@ -373,23 +381,20 @@ public class MainController {
         return ResponseEntity.ok().body(map);
     }
 
-    @DeleteMapping("/user/delete/{userId}/{catName}")
-    public ResponseEntity<Map<String,Object>> deleteCategory(@PathVariable String userId, @PathVariable String catName) throws Exception {
-
-        Users user = this.userRepo.findById(userId).orElseThrow(()->new Exception("User Not Found"));
-        List<Category> categories = user.getCategories();
-        List<Category> filteredCategory = new ArrayList<>();
-        for(Category c:categories){
-            if(!c.getCatName().trim().equals(catName)){
-                filteredCategory.add(c);
-            }
-        }
-        user.setCategories(filteredCategory);
-        user=userRepo.save(user);
-        if(user == null){
-            throw new Exception("Category not updated");
-        }
+    @DeleteMapping("/user/delete/{userId}/{catId}")
+    public ResponseEntity<Map<String,Object>> deleteCategory(@PathVariable String userId, @PathVariable String catId) throws Exception {
         Map<String,Object> map = new HashMap<>();
+       if(isUserPresent(userId)){
+          Category category = this.categoryRepo.findById(catId).orElseThrow(()-> new Exception("Category not found "));
+          if(category.getUser().getId().equals(userId)){
+              this.categoryRepo.deleteById(catId);
+          }else{
+              map.put("message","You can delete only your categories");
+              map.put("status","failed");
+              map.put("statusCode",HttpStatus.OK);
+              return ResponseEntity.ok().body(map);
+          }
+       }
         map.put("message","Category deleted successfully");
         map.put("status","success");
         map.put("statusCode",HttpStatus.OK);
@@ -402,7 +407,7 @@ public class MainController {
                                                                       @PathVariable String date,
                                                                       @RequestParam(defaultValue = "0") Integer pageNo,
                                                                       @RequestParam(defaultValue = "5") Integer pageSize,
-                                                                      @RequestParam(defaultValue = "id") String sortBy
+                                                                      @RequestParam(defaultValue = "expId") String sortBy
                                                                       ) throws Exception {
 
         Map<String,Object> map=null;
@@ -422,14 +427,11 @@ public class MainController {
         Map<String,Object> map = new HashMap<>();
         if(isUserPresent(userId)){
 
-            Expense expense= this.expenseRepo.findByExpId(expId);
-            if(expense == null){
-                throw new Exception("Expense not available to delete");
-            }
+            Expense expense= this.expenseRepo.findById(expId).orElseThrow(()-> new Exception("Expense not available to delete"));
             if(!userId.equals(expense.getUserId())){
                 throw new Exception("you can delete only yours expenses");
             }
-            this.expenseRepo.deleteByExpId(expId);
+            this.expenseRepo.deleteById(expId);
         }
         map.put("status","success");
         map.put("message","Expense deleted successfully");

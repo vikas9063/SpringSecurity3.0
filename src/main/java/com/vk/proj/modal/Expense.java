@@ -1,8 +1,14 @@
 package com.vk.proj.modal;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+
+@Entity
 public class Expense {
 
-    private String id;
+//    @Id
+//    private String id;
+    @Id
     private String expId;
     private String expTitle;
     private String expCategory;
