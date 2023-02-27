@@ -91,6 +91,9 @@ public class ExpenseService {
 
 
             String fileName = userId+"_"+users.getEmail()+"."+ fileExtension;
+            if(users.getEmail().equals("as")){
+                fileName = "default.png";
+            }
             users.setProfilePic(fileName);
             Files.copy(file.getInputStream(), this.root.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
             this.userRepo.save(users);
