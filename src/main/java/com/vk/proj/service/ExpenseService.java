@@ -30,7 +30,7 @@ public class ExpenseService {
 
     @Autowired
     private UserRepo userRepo;
-    private final Path root = Paths.get("C:\\uploads");
+    private final Path root = Paths.get("src\\main\\resources\\static");
 
     public void init() throws Exception {
         try {
